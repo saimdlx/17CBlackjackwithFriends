@@ -32,60 +32,49 @@ const int MAXCARDS = 52;
 //Average table size for blackjack, not including dealer.
 const int MAXPLAYERS = 4;
 
-
 class Card {
 private:
+
     string m_suit;
     string m_rank;
     bool m_faceUp;
 
 public:
     
-
     Card() : m_suit(""), m_rank("") {}
 
     Card(string decSuit, string decRank, bool setFace = true) : m_suit(decSuit), m_rank(decRank), m_faceUp(setFace) {}
     
     // Getters
     string getRank() const{
-
         return m_rank;
-
     }
+
     string getSuit() const {
-
         return m_suit;
-
     }
+
     bool isFaceUp() const {
-
         return m_faceUp;
-
     }
     // Setters
     void flip() {
-
         if (m_faceUp) {
-
             m_faceUp = false;
-
         }
-
     }
+
     bool operator==(const Card& other) const {
         if (m_rank == other.m_rank && m_suit == other.m_suit) {
-
             return true;
-
         }
 
         else {
-
             return false;
-
         }
 
     }
+
     bool operator<(const Card& other) const {
 
         if (m_rank < other.m_rank) {
@@ -103,7 +92,6 @@ public:
     }
     
 };
-
 
 class Deck {
 private:
@@ -126,7 +114,6 @@ public:
         }
 
     }
-    
     // Deck operations
     void shuffleDeck() {
         random_device ranD;
@@ -134,46 +121,143 @@ public:
         mt19937 sh(static_cast<unsigned int>(ranD()));
         shuffle(cards.begin(), cards.end(), sh);
     }
+    //One a one card per deal basis, to make things easier later.
+    //Obviously, standard dealing will start with two cards, easy loops.
     Card deal(){
         Card dealtCard = cards.front();
         cards.pop_front();
-
         return dealtCard;
     }
+    //After rounds, add card or cards to discardPile stack.
     void addToDiscardPile(const Card& card){
         discardPile.push(card);
     }
+    //Resets discardPile deck back into existing card deck.
     void retrieveCardsFromDiscardPile(){
-        cards.push_front(discardPile.top());
+        while(!discardPile.empty()){
+            cards.push_back(discardPile.top());
+            discardPile.pop();
+        }
     }
-    bool isEmpty() const;
-    int cardsRemaining() const;
-    string toString() const;
+    //Simple getter to check if deck has been emptied.
+    bool isEmpty() const{
+        if (cards.empty()){
+            return true;
+        }
+        return false;
+    }
+    int cardsRemaining() const{
+        return static_cast<int>(cards.size());
+    }
+
+    //For future bot logic, action logs, game flow, etc.
+    void toString() const{
+        cout << "Deck size is: " << cards.size() << endl;
+        cout << "Discard Pile size is " << discardPile.size() << endl;
+    }
     
+    friend class Hand;
+
 };
 
 
 class Hand {
 protected:
-    deque<Card> m_cards;
+    deque<Card> hand_cards;
     
 public:
-    // Constructor/Destructor
-    Hand();
-    
+    // Constructor, but hands are dealt empty as per game logic.
+    Hand(){}
     // Hand operations
-    void add(const Card& card);
-    void clear();
-    int getTotal() const;
-    //Get bust or blackjack status at the current iteration.
-    bool isBusted() const;
-    bool isBlackjack() const;
-    
-    // Iterators
-    
-    
-    // Display
-    string toString() const;
+    void add(const Card& card){
+        hand_cards.push_back(card);
+    }
+    void clear() {
+
+        hand_cards.clear();
+
+    }
+
+    /*
+        getTotal() collects and returns the total value of the hand (obviously to use in the blackjack
+        determinant).
+
+        int aces keeps track of all aces to be processed differently as per game logic. 
+        cards are ranked by either ace, face card, or numerical card, and stored as such with a point value
+
+        for loop from lines 212 to 218 treat aces based on if they would cause the hand to be bust,
+        which the player obviously did not intend to do. so, if the total plus the ace is less than or equal
+        to 21, we just add it as 11. otherwise, it's just a one, yay!
+    */
+
+    int getTotal() const{
+
+        int total = 0;
+        int aces = 0;
+
+        for (const auto& card : hand_cards){
+
+            string rank = card.getRank();
+
+            if (rank == "Ace") {
+                aces++;
+            }
+            else if (rank == "King" || rank == "Queen" || rank == "Jack") {
+                total += 10;
+            }
+            else {
+                total += stoi(rank);
+            }
+        }
+
+        for (int i = 0 ; i < aces ; i++){
+                if (total + 11 <= 21) {
+                    total += 11;
+                }
+                else {
+                    total += 1;
+                }
+
+        }
+
+        return total;
+    }
+    /*
+        basic getter functions for game logic.
+    */
+    bool isBusted() const {
+        
+        if (getTotal() > 21) {
+            return true;
+        }
+
+        return false;
+    }
+    bool isBlackjack() const {
+
+        if (hand_cards.size() == 2 && getTotal() == 21) {
+            return true;
+        }
+
+        return false;
+    }
+    void toString() const{
+
+        if (hand_cards.empty()){
+            cout << "Hand's empty...";
+        }
+
+        for (const auto& card : hand_cards){
+            if (card.isFaceUp()) {
+                cout << card.getRank() << " of " << card.getSuit() << ", ";
+            }
+            else{
+                cout << "[FACED DOWN], shhh..., ";
+            }
+        }
+
+        cout << "Total: " << getTotal() << " " << endl;
+    }
 };
 
 
@@ -189,7 +273,9 @@ public:
     Player(const string& name = "Player", int money = 1000);
     
     // Getters
-    string getName() const;
+    string getName() const{
+        return m_name;
+    }
     int getMoney() const;
     int getBet() const;
     const Hand& getHand() const;
