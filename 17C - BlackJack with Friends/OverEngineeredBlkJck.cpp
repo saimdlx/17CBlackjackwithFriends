@@ -68,13 +68,13 @@ public:
         if (m_rank == other.m_rank && m_suit == other.m_suit) {
             return true;
         }
+
         else {
             return false;
         }
     }
 
     bool operator<(const Card& other) const {
-
         if (m_rank < other.m_rank) {
             return true;
 
@@ -85,6 +85,7 @@ public:
         //If card ranks are the same, compare the suits.
         return m_suit < other.m_suit;
     }
+    
 };
 
 class Deck {
@@ -106,6 +107,7 @@ public:
                 cards.push_back(Card(iterRanks, iterSuits));
             }
         }
+
     }
     // Deck operations
     void shuffleDeck() {
@@ -150,6 +152,7 @@ public:
     }
     
     friend class Hand;
+
 };
 
 
@@ -165,7 +168,9 @@ public:
         hand_cards.push_back(card);
     }
     void clear() {
+
         hand_cards.clear();
+
     }
 
     /*
@@ -207,6 +212,7 @@ public:
                 else {
                     total += 1;
                 }
+
         }
 
         return total;
@@ -215,20 +221,26 @@ public:
         basic getter functions for game logic.
     */
     bool isBusted() const {
+        
         if (getTotal() > 21) {
             return true;
         }
+
         return false;
     }
     bool isBlackjack() const {
+
         if (hand_cards.size() == 2 && getTotal() == 21) {
             return true;
         }
+
         return false;
     }
 
     /*
+
         relevant iterators
+
     */
     deque<Card>::iterator begin() {
         return hand_cards.begin();
@@ -292,6 +304,7 @@ public:
     Hand& getHandRef(){
         return m_hand;
     }
+    
     /*
 
         placeBet() verifies that the bet places is a legitmate amount, while also making sure the player
@@ -707,16 +720,102 @@ public:
 
 
             if (p->isBlackjack()){
-                cout << 
+                cout << "Blackjack! " << p->getName() << " stands.\n";
+                logAction(p->getName() + " got a blackjack!");
+                continue;
+            }
+
+            while (!p->isBusted() && p->isHitting()){
+                Card nC = m_dealer.deal();
+                cout << p->getName() << " receives: " << nC.getRank() << " of " << nC.getSuit() << endl;
+                p->getHandRef().add(nC);
+
+
+                if (p->isBusted()){
+                    cout << p->getName() << " busts with " << p->getHand().getTotal() << "!\n";
+                    logAction(p->getName() + " busted with " + to_string(p->getHand().getTotal()));
+                }
+                else{
+                    cout << p->getName() << " has " << p->getHand().getTotal() << ".\n";
+                }
+            }
+            if (!p->isBusted()){
+                cout << p->getName() << " stands with " << p->getHand().getTotal() << ".\n";
+                logAction(p->getName() + " stands with " + to_string(p->getHand().getTotal()));
             }
         }
-        
+    }
+    void dealerTurn(){
+        cout << "\n===== DEALERS TURN =====\n";
+        bool cleanSweep = true;
+        for (auto& p : m_players){
+            if (!p->isBusted()){
+                cleanSweep = false;
+                break;
+            }
+        }
+
+        m_dealer.showHand(true);
+
+        if (cleanSweep){
+            cout << "Wow! All players have busted, the Dealer wins!\n";
+            logAction("All players busted, dealer wins");
+            return;
+        }
+
+        while (m_dealer.isHitting()){
+            Card nC = m_dealer.deal();
+            cout << "Dealer recieves: " << nC.getRank() << " of " << nC.getSuit() << endl;
+            m_dealer.getHandRef().add(nC);
+            cout << "Dealer has " << m_dealer.getHand().getTotal() << ".\n";
+        }
+
+        if(m_dealer.isBusted()){
+            cout << "Dealer busts with " << m_dealer.getHand().getTotal() << "!\n";
+            logAction("Dealer busted with " + to_string(m_dealer.getHand().getTotal()));
+        }
+        else{
+            cout << "Dealer stands with " << m_dealer.getHand().getTotal() << "!\n";
+            logAction("Dealer stands with " + to_string(m_dealer.getHand().getTotal()));
+        }
+
+    }
+    void payouts(){
+        cout << "\n===== RESULTS =====\n";
+
+        int dT = m_dealer.getHand().getTotal();
+        bool dB = m_dealer.isBusted();
+        bool dBJ = m_dealer.isBlackjack();
+
+        for (auto& p : m_players){
+
+            string name = p->getName();
+            int pT = p->getHand().getTotal();
+            bool pB = p->isBusted();
+            bool pBJ = p->isBlackjack();
+
+            cout << name << ": ";
+
+            if (pB){
+                p->lose();
+                m_stats.recordLoss(name);
+                cout << "Busted and lost $" << p->getBet() << ".\n";
+                logAction(name + "lost $" + to_string(p->getBet()));
+            }
+            else if (dB){
+                p->win();
+                m_stats.recordWin(name);
+                cout << "Won $" << p->getBet() << " (dealer busted).\n";
+                logAction(name + " won $" + to_string(p->getBet()) + " (dealer busted)");
+            }
+
+
+        }
+
 
 
 
     }
-    void dealerTurn();
-    void payouts();
     void cleanup();
     
     // Game state management
