@@ -68,11 +68,9 @@ public:
         if (m_rank == other.m_rank && m_suit == other.m_suit) {
             return true;
         }
-
         else {
             return false;
         }
-
     }
 
     bool operator<(const Card& other) const {
@@ -84,12 +82,9 @@ public:
         else if (m_rank > other.m_rank){
             return false;
         }
-
         //If card ranks are the same, compare the suits.
         return m_suit < other.m_suit;
-
     }
-    
 };
 
 class Deck {
@@ -111,7 +106,6 @@ public:
                 cards.push_back(Card(iterRanks, iterSuits));
             }
         }
-
     }
     // Deck operations
     void shuffleDeck() {
@@ -156,7 +150,6 @@ public:
     }
     
     friend class Hand;
-
 };
 
 
@@ -172,9 +165,7 @@ public:
         hand_cards.push_back(card);
     }
     void clear() {
-
         hand_cards.clear();
-
     }
 
     /*
@@ -216,7 +207,6 @@ public:
                 else {
                     total += 1;
                 }
-
         }
 
         return total;
@@ -225,26 +215,20 @@ public:
         basic getter functions for game logic.
     */
     bool isBusted() const {
-        
         if (getTotal() > 21) {
             return true;
         }
-
         return false;
     }
     bool isBlackjack() const {
-
         if (hand_cards.size() == 2 && getTotal() == 21) {
             return true;
         }
-
         return false;
     }
 
     /*
-
         relevant iterators
-
     */
     deque<Card>::iterator begin() {
         return hand_cards.begin();
@@ -308,7 +292,6 @@ public:
     Hand& getHandRef(){
         return m_hand;
     }
-    
     /*
 
         placeBet() verifies that the bet places is a legitmate amount, while also making sure the player
