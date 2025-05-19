@@ -968,7 +968,7 @@ public:
         cout << "\n=====Each player starts with two cards. The dealer's first card is hidden.\n";
         cout << "\n=====Each player also must decide to hit (take another card), or stand (stop taking cards).\n";
         cout << "\n=====The dealer will play against you! With some mental math and a little bit of luck, you could get rich!\n";
-        cout << "\n=====To get started, each of you must create a player profile with your name and how much money you begin with!\n";
+        cout << "\n=====To get started, each of you must create a player profile with your name!\n";
         cout << "\n=====Good luck, and have fun!\n" << endl;
     }
     void createPlayerProfile(){
@@ -988,7 +988,7 @@ public:
             return;
         }
 
-        cout << "\nCreating new profile for " << newName << " with $ " << nMoney << "to start with." << endl;
+        cout << "\nCreating new profile for " << newName << " with $ " << nMoney << " to start with." << endl;
 
         Player nP(newName, nMoney);
         addPlayer(nP);
