@@ -29,8 +29,6 @@ using namespace std;
 
 //No more than a deck of cards per deck (obviously).
 const int MAXCARDS = 52;
-//Average table size for blackjack, not including dealer.
-const int MAXPLAYERS = 4;
 
 class Card {
 private:
