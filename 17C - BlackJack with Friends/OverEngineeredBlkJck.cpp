@@ -85,7 +85,9 @@ public:
         //If card ranks are the same, compare the suits.
         return m_suit < other.m_suit;
     }
-    
+    Card operator+(const Card& other) const {
+        return Card();
+    }
 };
 
 class Deck {
@@ -104,20 +106,33 @@ public:
         //Populate function goes here:
         for (auto& iterSuits : suits) {
             for (auto& iterRanks : ranks) {
-                cards.push_back(Card(iterRanks, iterSuits));
+                cards.push_back(Card(iterSuits, iterRanks));
             }
         }
 
     }
     // Deck operations
-    void shuffleDeck() {
-        random_device ranD;
-        //Using a traditional randomizer function, Mersenne Twister.
-        mt19937 sh(static_cast<unsigned int>(ranD()));
-        shuffle(cards.begin(), cards.end(), sh);
-    }
+    
     //One a one card per deal basis, to make things easier later.
     //Obviously, standard dealing will start with two cards, easy loops.
+    void shuffleDeck() {
+        /*
+        a key issue that needs to be addressed is a lists inability to iterate randomly
+        hence, a custom shuffle algorithm needs to be used. 
+        */
+        random_device rd;
+        mt19937 gen(rd());
+        int n = distance(cards.begin(), cards.end());
+        auto it = cards.begin();
+        for (int i = n - 1; i > 0; --i) {
+            uniform_int_distribution<> distrib(0, i);
+            int j = distrib(gen);
+            auto it_j = cards.begin();
+            std::advance(it_j, j);
+            std::iter_swap(it, it_j);
+            std::advance(it, 1);
+        }
+    }
     Card deal(){
         Card dealtCard = cards.front();
         cards.pop_front();
@@ -150,9 +165,6 @@ public:
         cout << "Deck size is: " << cards.size() << endl;
         cout << "Discard Pile size is " << discardPile.size() << endl;
     }
-    
-    friend class Hand;
-
 };
 
 
@@ -168,9 +180,7 @@ public:
         hand_cards.push_back(card);
     }
     void clear() {
-
         hand_cards.clear();
-
     }
 
     /*
@@ -193,7 +203,6 @@ public:
         for (const auto& card : hand_cards){
 
             string rank = card.getRank();
-
             if (rank == "Ace") {
                 aces++;
             }
@@ -239,7 +248,8 @@ public:
 
     /*
 
-        relevant iterators
+        random access iterators used for specific object class
+        to be extended to all other classes utilizing card structure iteration
 
     */
     deque<Card>::iterator begin() {
@@ -250,12 +260,13 @@ public:
         return hand_cards.end();
     }
     deque<Card>::const_iterator begin() const {
-        return hand_cards.begin();
+        return hand_cards.cbegin();
     }
     
     deque<Card>::const_iterator end() const {
-        return hand_cards.end();
+        return hand_cards.cend();
     }
+
 
     void toString() const{
 
@@ -268,7 +279,7 @@ public:
                 cout << card.getRank() << " of " << card.getSuit() << ", ";
             }
             else{
-                cout << "[FACED DOWN], shhh..., ";
+                cout << "[FACED DOWN], ";
             }
         }
 
@@ -286,7 +297,7 @@ protected:
     
 public:
     // Constructor/Destructor
-    Player(const string& name = "Player", int money = 1000);
+    Player(const string& name = "Player", int money = 1000): m_name(name), m_money(money), m_bet(0){}
     
     // Getters
     string getName() const{
@@ -306,7 +317,6 @@ public:
     }
     
     /*
-
         placeBet() verifies that the bet places is a legitmate amount, while also making sure the player
         isn't spending more money than they currently have.
 
@@ -387,8 +397,7 @@ private:
     
 public:
     // Constructor
-    Dealer(const string& name = "The Dealer");
-    
+    Dealer(const string& name = "The Dealer"){};
     /*
     unlike the player function couterpart, we need to apply some sort of basic logic to
     the dealer. based on casino rules, the dealer MUST hit on a total sum of 16 or less,
@@ -421,11 +430,12 @@ public:
             Set an auto variable to the beginning of the hand, and fetch the rank and respective
             suit of the card while it iterates until it does not equal the end value of the hand.
         */
-        for (auto it = m_hand.begin() + 1; it != m_hand.end() ; it++) {
+       auto it = m_hand.begin();
+       it++;
+        for (; it != m_hand.end() ; it++) {
             const Card& card = *it;
             cout << card.getRank() << " of " << card.getSuit() << ", ";
         }
-
     }
     
     /*
@@ -451,7 +461,7 @@ private:
     
 public:
 
-    GameStats();
+    GameStats(){};
     
     void recordWin(const string& playerName){
         m_playerStats[playerName].first++;
@@ -485,12 +495,14 @@ public:
         if (gW != m_playerStats.end()){
             return gW->second.first;
         }
+        return 0;
     }
     int getLosses(const string& playerName) const{
         auto gL = m_playerStats.find(playerName);
         if (gL != m_playerStats.end()){
             return gL->second.second;
         }
+        return 0;
     }
     double getWinRate(const string& playerName) const{
         auto gWR = m_playerStats.find(playerName);
@@ -559,8 +571,8 @@ public:
 };
 
 
-class Game {
-private:
+class Game : public GameStats{
+public:
     /*
     used to make a COPY of the player to use during run.
     */
@@ -582,8 +594,6 @@ private:
     map<string, int> m_cardValues;
     map<string, string> m_suitNames;
     
-public:
-    // Constructor/Destructor
     Game() : m_currentState(GameState::BETTING){
         m_cardValues["2"] = 2;
         m_cardValues["3"] = 3;
@@ -600,10 +610,10 @@ public:
         m_cardValues["Ace"] = 11; 
 
         //suits for game flow
-        m_suitNames["HEARTS"] = "♥";
-        m_suitNames["DIAMONDS"] = "♦";
-        m_suitNames["CLUBS"] = "♣";
-        m_suitNames["SPADES"] = "♠";
+        m_suitNames["HEARTS"] = "HEARTS";
+        m_suitNames["DIAMONDS"] = "DIAMONDS";
+        m_suitNames["CLUBS"] = "CLUBS";
+        m_suitNames["SPADES"] = "SPADES";
     }
     
     // Player management
@@ -626,6 +636,8 @@ public:
             m_players.erase(rP);
         }
     }
+
+
     
     // magnum opus
     void play(){
@@ -656,6 +668,7 @@ public:
 
             setState(GameState::CLEANUP);
             cleanup();
+            findMinMaxMoney();
 
             cout << "\nContinue playing? (y/n):" ;
             char gChoice;
@@ -780,6 +793,13 @@ public:
         }
 
     }
+    /*
+    
+        payout function based on hand totals and if player or dealer has achieved a blackjack.
+        basic if else ladder logic to determine how much money is either sent out, lost, or pushed
+        back to the players and dealer in the event of a tie.
+    
+    */
     void payouts(){
         cout << "\n===== RESULTS =====\n";
 
@@ -808,36 +828,246 @@ public:
                 cout << "Won $" << p->getBet() << " (dealer busted).\n";
                 logAction(name + " won $" + to_string(p->getBet()) + " (dealer busted)");
             }
+            else if(pBJ && !dBJ){
+                int wins = static_cast<int>(p->getBet() * 1.5);
+                m_stats.recordWin(name);
+                cout << "Blackjack! Won $" << wins << ".\n";
+                logAction(name + "won $" + to_string(wins) + "with blackjack.");
+                p->win();
+            }
+            else if(!pBJ && dBJ){
+                p->lose();
+                m_stats.recordLoss(name);
+                cout << "Lost $" << p->getBet() << " the dealer's blackjack. \n";
+                logAction(name + "lost $ " + to_string(p->getBet()) + " to dealer's blackjack");
+            }
+            else if (pT > dT){
+                p->win();
+                m_stats.recordWin(name);
+                cout << "Won $ " << p->getBet() << " with " << pT << " over dealer's " << dT << ".\n";
+                logAction(name + "won $" + to_string(p->getBet()));
+            }
+            else if (pT < dT){
+                p->lose();
+                m_stats.recordLoss(name);
+                cout << "Lost $" << p->getBet() << " with " << pT << " under dealer's " << dT << ".\n";
+                logAction(name + " lost $" + to_string(p->getBet())); 
+            }
+            else{
+                p->push();
+                cout << "Push. Bet of $" << p->getBet() << " returned.\n";
+                logAction(name + " pushed with dealer at " + to_string(pT));
+            }
 
+            m_stats.updateHighScore(name, p->getMoney());
 
         }
-
-
-
-
     }
-    void cleanup();
+    void cleanup(){
+        auto rP = m_players.begin();
+        while (rP != m_players.end()){
+            if ((*rP)->getMoney()<=0){
+                cout << (*rP)->getName() << " is out of money and forfeits the game.\n";
+                logAction( (*rP)->getName() + " left the game (out of money)");
+                rP = m_players.erase(rP);
+            }
+            else{
+                rP++;
+            }
+        }
+        processEvents();
+
+        m_stats.displayStats();
+        m_stats.displayHighScores();
+    }
+
+    /*
+        this function stays OUT of the playerstats class because it's to be used in between rounds of blackjack.
+    */
+    void findMinMaxMoney(){
+        if (m_players.empty()){
+            cout <<"No players at table to value!\n";
+            return ;
+        }
+
+        int min = numeric_limits<int>::max();
+        int max = 0;
+        string richest = "";
+        string poorest = "";
+
+        for (const auto& p : m_players){
+            if(p->getMoney() > max) {
+                richest = p->getName();
+                max = p->getMoney();
+            }
+
+            if (p->getMoney() < min){
+                poorest = p->getName();
+                min = p->getMoney();
+            }
+            
+        }
+
+        cout << "\n=====PLAYER MONEY STATS=====\n";
+        cout << "Current Top Earner: " << richest << " with $" << max << endl;
+        cout << "Current Low Earner: " << poorest << " with $" << min << endl;
+    }
     
     // Game state management
-    void setState(GameState state);
-    GameState getState() const;
+    void setState(GameState state){
+        m_currentState = state;
+    }
+    GameState getState() const{
+        return m_currentState;
+    }
     
     // Game utilities
-    void displayTable() const;
-    void logAction(const string& action);
-    void displayActionLog() const;
-    void queueEvent(const string& event, int priority);
-    void processEvents();
+    void displayTable() const{
+        cout << "\n===== TABLE STATUS =====\n";
+        m_dealer.showHand(false);
+        for (const auto& p: m_players){
+            cout << p->getName() << " ($" << p->getMoney() << ", bet: $" << p->getBet() << "): ";
+            p->getHand().toString();
+            cout << endl;
+        }
+    }
+    void logAction(const string& action){
+        m_actionLog.push(action);
+    }
+    void displayActionLog() const{
+        cout << "\n===== ACTION LOG =====\n";
+
+        if (m_actionLog.empty()){
+            cout << "No actions currently logged.\n";
+            return ;
+        }
+    }
+    void queueEvent(const string& event, int priority){
+        m_events.push(make_pair(priority, event));
+    }
+    void processEvents(){
+        while (!m_events.empty()){
+            cout << "EVENT: " << m_events.top().second << endl;
+            m_events.pop();
+        }
+    }
     
     // Menu system
-    void displayMenu() const;
-    void processMenuChoice(int choice);
-    void showWelcomeScreen() const;
-    void createPlayerProfile();
-    void loadPlayerProfile();
-    void displayRules() const;
+    void displayMenu() const{
+        cout << "\n=====MENU=====\n";
+        cout << "\n1. Play Game\n";
+        cout << "\n2. Create Player Profile\n";
+        cout << "\n3. Load Player Profile\n";
+        cout << "\n4. View Stats\n";
+        cout << "\n5. View High Scores\n";
+        cout << "\n6. Quit Game\n";
+    }
+    void showWelcomeScreen() const{
+        cout << "\n=====WELCOME TO BLACKJACK! WITH FRIENDS=====\n";
+        cout << "\n=====Your goal as the player is to try and beat the dealer by getting as close to 21 without going over!\n";
+        cout << "\n=====Each player starts with two cards. The dealer's first card is hidden.\n";
+        cout << "\n=====Each player also must decide to hit (take another card), or stand (stop taking cards).\n";
+        cout << "\n=====The dealer will play against you! With some mental math and a little bit of luck, you could get rich!\n";
+        cout << "\n=====To get started, each of you must create a player profile with your name and how much money you begin with!\n";
+        cout << "\n=====Good luck, and have fun!\n" << endl;
+    }
+    void createPlayerProfile(){
+        string newName = "";
+        int nMoney = 1000;
+
+        cout << "Enter your name:";
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+        getline(cin, newName);
+
+        auto alrExist = find_if(m_players.begin(), m_players.end(), [&newName](const unique_ptr<Player>&p){
+            return p->getName() == newName;
+        });  
+
+        if (alrExist != m_players.end()){
+            cout << "Player already exists." << endl;
+            return;
+        }
+
+        cout << "\nCreating new profile for " << newName << " with $ " << nMoney << "to start with." << endl;
+
+        Player nP(newName, nMoney);
+        addPlayer(nP);
+        
+        cout << "\nPlayer profile created successfully!\n" << endl;
+    }
     
+    void loadPlayerProfile(){
+        string pName;
+
+        cout << "Enter your profile name: ";
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+        getline(cin, pName);
+
+        auto alrExists = find_if(m_players.begin(), m_players.end(), [&pName](const unique_ptr<Player>& p) {
+             return p->getName() == pName; 
+        });
+
+        if (alrExists != m_players.end()) {
+        cout << "Welcome back, " << pName << "!\n";
+        cout << "Current balance: $" << (*alrExists)->getMoney() << "\n";
+        
+        // Display player stats
+        cout << "Wins: " << m_stats.getWins(pName) << "\n";
+        cout << "Losses: " << m_stats.getLosses(pName) << "\n";
+        cout << "Win rate: " << fixed << setprecision(1) << (m_stats.getWinRate(pName) * 100) << "%\n";
+        } else {
+            cout << "Player profile not found. Create a new profile? (y/n): ";
+            char choice;
+            cin >> choice;
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+        
+            if (choice == 'y' || choice == 'Y') {
+            createPlayerProfile();
+            }
+        }
+    }
 };
 
 
-int main(){};
+int main() {
+    Game gameinst;
+    bool exit = false;
+    while (!exit){
+
+        int decision;
+        gameinst.displayMenu();
+        cin >> decision;
+        switch(decision){
+            case 1: {
+            gameinst.play();
+            break;
+            }
+            case 2: {
+                gameinst.createPlayerProfile();
+                break;
+            }
+            case 3:{
+                gameinst.loadPlayerProfile();
+                break;
+            }
+            case 4:{
+                gameinst.displayStats();
+                break;
+            }
+            case 5:{
+                gameinst.displayHighScores();
+                break;
+            }
+            case 6:{
+                exit = true;
+                break;
+            }
+            default:{
+                cout << "Invalid Input." << endl;
+                break;
+            }
+        }
+    }
+    cout << "Goodbye!" << endl;
+    return 0;
+}
